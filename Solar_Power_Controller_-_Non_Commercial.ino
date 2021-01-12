@@ -32,10 +32,7 @@ Source: http://www.instesre.org/ArduinoUnoSolarCalculations.pdf
 
 #define ENC28J60_CS_PIN 3
 
-#define PINGTIME 60000
-
 // ethernet interface mac address, must be unique on the LAN
-
 static byte mymac[] = { 0xDE,0xAD,0xBE,0xEF,0xFE,0xED };
 static byte myip[] = { 192, 168, 0, 11 };
 
@@ -105,12 +102,12 @@ void processNetRequest(int pos, void (*callbackFunc)(const char*)) {
 
     char* start_line;
     char* end_line;
-    char query_string[200];
+    char* query_string;
     
     char* data = (char *) Ethernet::buffer + pos;
-
-    memset(query_string, '\0', sizeof(query_string));
+    
     end_line = strchr(data, '\n');
+    query_string = (char*)malloc(end_line-data+1);
 
     strncpy(query_string, data, end_line-data);
     query_string[end_line-data] = '\0';
@@ -120,6 +117,8 @@ void processNetRequest(int pos, void (*callbackFunc)(const char*)) {
     end_line = strchr(start_line, ' ');
     start_line[end_line-start_line] = '\0';
     callbackFunc(start_line);
+    
+    free(query_string);
 }
 
 void manualMoveAndAdjust(void (*callbackFunc)(const char*)) {
@@ -396,9 +395,6 @@ void setControl(const char* query_string) {
     case 8: // Manual Adjust
       manualAdjust();
       break;
-    case 9: // Set IP Address
-      setIPAddr(query_string);
-      break;
     default:
       break;  
   }
@@ -541,11 +537,6 @@ void manualMove() {
 
 void manualAdjust() {
   manualMoveAndAdjust(setManualStepsAndAdjust);
-}
-
-void setIPAddr(const char* query_string) {
-  ether.parseIp(myip, getStringFromQueryString(query_string, "ip"));
-  resetEtherConnection();
 }
 
 void sendHomePage(int trackerStatusIn) {
